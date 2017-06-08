@@ -1,0 +1,205 @@
+package faceplusplus;
+
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import javax.imageio.ImageIO;
+import javax.swing.JFrame;
+import org.bytedeco.javacpp.opencv_core.Rect;
+import org.bytedeco.javacpp.opencv_imgcodecs;
+import org.bytedeco.javacpp.opencv_imgproc;
+import org.bytedeco.javacpp.opencv_core.Mat;
+import org.bytedeco.javacpp.opencv_core.Point;
+import org.bytedeco.javacpp.opencv_core.Scalar;
+import org.bytedeco.javacv.CanvasFrame;
+import org.bytedeco.javacv.Frame;
+import org.bytedeco.javacv.Java2DFrameConverter;
+import org.bytedeco.javacv.OpenCVFrameConverter;
+import org.bytedeco.javacv.FrameGrabber.Exception;
+import org.bytedeco.javacv.OpenCVFrameGrabber;
+
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonSyntaxException;
+/*
+ * 调用摄像头
+ */
+public class CameraDemo {
+	
+	private int[] mouth = {1,2,3,6,10,11,12,13,17,33,42,44,45,48,55,76,80,83};//嘴
+	private int[] eye = {4,9,16,20,21,29,41,43,47,49,52,53,56,58,61,63,64,68,79,82};//眼睛
+	private int[] eyebrow = {5,7,8,18,19,36,46,50,51,57,62,65,67,69,70,81};//眉毛
+	private int[] contour = {14,15,22,23,24,25,26,27,28,30,31,32,34,35,39,59,60,66,77};//边缘
+	private int[] nose = {37,38,40,54,71,72,73,74,75,78};//鼻子
+	
+	public boolean ifOnArray(int[] array, int flag)
+	{
+		for(int i=0;i<array.length;i++)
+		{
+			if(array[i] == flag)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+	public int faceLocation(int flag)
+	{
+		   if(ifOnArray(mouth, flag+1))
+		   {
+			   return 1;
+		   }else if(ifOnArray(eye, flag+1))
+		   {
+			   return 2;
+		   }else if(ifOnArray(eyebrow, flag+1))
+		   {
+		       return 3;	
+		   }else if(ifOnArray(contour, flag+1))
+		   { 
+			   return 4;
+		   }else if(ifOnArray(nose, flag+1))
+		   {
+			   return 5;
+		   }
+		return -1;
+	}
+	/*
+	 * 绘制人脸装饰套件
+	 */
+	public void loadFaceImage(String imagepath, Mat mat, int x, int y)
+	{
+		Mat logoMat = opencv_imgcodecs.imread(imagepath);
+		Mat mask =  opencv_imgcodecs.imread(imagepath, 0);
+		/********绘制套件的起始坐标*******/
+	    Mat imageROI = null;
+	    if(x+logoMat.cols() < mat.cols() && y+logoMat.rows() < mat.rows())
+	    {
+	         imageROI = mat.apply(new Rect(x, y, logoMat.cols(), logoMat.rows()));
+	   	     logoMat.copyTo(imageROI, mask);  
+	    }
+	}
+	/*
+	 * 人脸识别
+	 */
+	public void findFace() throws Exception
+	{
+		OpenCVFrameConverter.ToIplImage converter = new OpenCVFrameConverter.ToIplImage();
+		OpenCVFrameGrabber grabber = new OpenCVFrameGrabber(0);
+		grabber.start();//开始获取摄像头数据
+		CanvasFrame canvas = new CanvasFrame("摄像头");//新建一个窗口
+		canvas.setSize(600, 400);
+		canvas.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		canvas.setAlwaysOnTop(true);
+		Java2DFrameConverter java2dFrameConverter = new Java2DFrameConverter();
+		
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		 /*************水印文字位置********/
+        Point point = new Point(0, 20);
+        /**********颜色*********/
+        Scalar scalar = new Scalar(0, 0, 255, 0);
+        Frame frame = null;
+		while(true)
+		{
+			if(!canvas.isDisplayable())
+			{
+				//窗口是否关闭
+				grabber.stop();//停止抓取
+				System.exit(2);//退出
+				
+			}
+			 frame = grabber.grab();
+			/*********添加时间显示的水印*************/
+	    	 Mat mat = converter.convertToMat(frame);
+	    	 
+	    	 opencv_imgproc.putText(mat, sdf.format(new Date()), point, opencv_imgproc.CV_FONT_ITALIC, 0.8, scalar, 2, 20, false);
+	         /*************利用face++进行识别**************/
+	
+	         BufferedImage bufferedImage = java2dFrameConverter.getBufferedImage(frame,1);
+	         ByteArrayOutputStream out = new ByteArrayOutputStream();
+	         try {
+				ImageIO.write(bufferedImage, "jpg", out);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}  
+	         byte[] buffer = out.toByteArray();
+	         String result = FaceTest.getRect(buffer);
+	         System.out.println("face++:" + result);
+	         if(result != null)
+	         {
+	        	JsonParsing.initPoints();
+		        try {
+					JsonParsing.faceJsonParsing(result);
+				} catch (JsonIOException | JsonSyntaxException
+						| FileNotFoundException e) {
+					e.printStackTrace();
+				}
+		        /************绘制83个面部关键点*****************/
+		        Point[] points = JsonParsing.getPoints();
+		 /*       for(int i=0; i<83; i++)
+			    {
+			    	 int x = points[i].x();
+			    	 int y = points[i].y();
+			    	 System.out.println("x:" + x + " y:" + y);
+			    	 Rect rect = new Rect(x, y, 5, 5);
+			    	 int location = faceLocation(i);
+			    	 Scalar scalar2 = null;
+			    	 if(location == 1)//RGB  BGR
+			    	 {
+			    		 scalar2 = new Scalar(0, 255, 0, 1);//绿色
+			    	 }else if(location == 2)
+			    	 {
+			    		 scalar2 = new Scalar(0, 0, 255, 1);//红色
+			    	 }else if(location == 3)
+			    	 {
+			    		 scalar2 = new Scalar(0, 255, 255, 1);//黄色
+			    	 }else if(location == 4)
+			    	 {
+			    		 scalar2 = new Scalar(255, 0, 255, 1); //粉色
+			    	 }else if(location == 5)
+			    	 {
+			    		 scalar2 = new Scalar(255, 0, 0, 1);//蓝色
+			    	 }
+			    	 rectangle(mat, rect, scalar2);
+			    }*/
+		        /*******判断嘴张没张开******/
+	        	 int mouth_upper_lip_top = points[1].y();//293
+	        	 int mouth_upper_lip_bottom = points[82].y();//299
+	        	 
+	        	 int mouth_lower_lip_top = points[16].y();//301
+	        	 int mouth_lower_lip_bottom = points[75].y();//310
+	        	 if(mouth_lower_lip_bottom - mouth_upper_lip_top > 20)
+	        	 {
+	        		 System.out.println("张开嘴了");
+	        	 }else{
+	        		 System.out.println("嘴闭上了");
+	        	 }
+	        	 
+	        	 Rect face_rect = JsonParsing.getFaceRect();
+	        	 /*********胡子位置**********/
+	        	 int x = points[1].x() - 46;
+	        	 int y = points[1].y() - 35 - 10;
+	             loadFaceImage("D:\\hu2.png", mat, x, y);
+	             /**********添加眼镜***************/ 
+	             x = (points[70].x() + points[73].x())/2;
+	             x = x - 82;
+	             y = points[70].y();
+	             y = y - 20;
+	             loadFaceImage("D:\\eye.png", mat, x, y);
+	        	 
+	         }
+	          
+	    	  frame = converter.convert(mat);
+   		      canvas.showImage(frame);//获取摄像头图像并放到窗口上显示，表示是一帧图像
+		//	Thread.sleep(40);//20帧图像
+		}
+	}
+
+	public static void main(String[] args) throws Exception, InterruptedException {
+	
+		CameraDemo camera = new CameraDemo();
+		camera.findFace();
+	}
+		
+}
