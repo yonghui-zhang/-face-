@@ -1,0 +1,432 @@
+package faceplusplus;
+
+import java.io.FileNotFoundException;
+import org.bytedeco.javacpp.opencv_core.Point;
+import org.bytedeco.javacpp.opencv_core.Rect;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
+
+/*
+ * 解析face++传回的json数据
+ */
+public class JsonParsing {
+	
+	private static Point[] points = new Point[83];//83个面部关键点
+	private static Rect face_rect = null;//脸部矩形
+
+	/***********年龄等属性定义**********/
+	public static void initPoints()
+	{
+		for(int i=0;i<83;i++)
+		{
+			points[i] = new Point();
+		}
+	}
+	
+	public static Point[] getPoints() {
+		return points;
+	}
+	public static Rect getFaceRect()
+	{
+		return face_rect;
+	}
+
+	/*
+	 * face++人脸解析
+	 */
+	public static void faceJsonParsing(String json) throws JsonIOException, JsonSyntaxException, FileNotFoundException
+	{
+		JsonParser parser = new JsonParser();//创建json解析器
+	//	JsonObject object = (JsonObject) parser.parse(new FileReader("D:\\facepoint.json"));
+		JsonObject object = (JsonObject) parser.parse(json);
+		JsonArray jsonArray = null;
+		try{
+		   jsonArray = object.get("faces").getAsJsonArray();//"faces"
+		}catch(Exception e)
+		{
+			return ;
+		}
+		if(jsonArray.size() <= 0)
+		{
+			return ;
+		}
+		/*******识别出多张人脸*********/
+//		for(int i=0; i<jsonArray.size();i++)
+//		{
+			JsonObject object2 = jsonArray.get(0).getAsJsonObject();
+			JsonObject landmark = object2.get("landmark").getAsJsonObject();//83面部关键点
+			if(landmark == null)
+			{
+				System.out.println("landmark null");
+			}
+			landmarkParsing(landmark);
+			JsonObject attributes = object2.get("attributes").getAsJsonObject();//年龄信息
+			JsonObject face_rectangle = object2.get("face_rectangle").getAsJsonObject();//脸部矩形
+			faceRectangleParsing(face_rectangle);
+//		}
+		
+	}
+	/*
+	 * 83关键点面部解析
+	 */
+	public static void landmarkParsing(JsonObject landmark)
+	{
+		int x = 0;
+		int y = 0;
+		JsonObject mouth_upper_lip_left_contour2 = landmark.get("mouth_upper_lip_left_contour2").getAsJsonObject();
+		points[0].x(mouth_upper_lip_left_contour2.get("x").getAsInt());
+		points[0].y(mouth_upper_lip_left_contour2.get("y").getAsInt());
+		
+		JsonObject mouth_upper_lip_top = landmark.get("mouth_upper_lip_top").getAsJsonObject();
+		points[1].x(mouth_upper_lip_top.get("x").getAsInt());
+		points[1].y(mouth_upper_lip_top.get("y").getAsInt());
+		
+		JsonObject mouth_upper_lip_left_contour1 = landmark.get("mouth_upper_lip_left_contour1").getAsJsonObject();
+		points[2].x(mouth_upper_lip_left_contour1.get("x").getAsInt());
+		points[2].y(mouth_upper_lip_left_contour1.get("y").getAsInt());
+		
+		JsonObject left_eye_upper_left_quarter = landmark.get("left_eye_upper_left_quarter").getAsJsonObject();
+		points[3].x(left_eye_upper_left_quarter.get("x").getAsInt());
+		points[3].y(left_eye_upper_left_quarter.get("y").getAsInt());
+		
+		JsonObject left_eyebrow_lower_middle = landmark.get("left_eyebrow_lower_middle").getAsJsonObject();
+		points[4].x(left_eyebrow_lower_middle.get("x").getAsInt());
+		points[4].y(left_eyebrow_lower_middle.get("y").getAsInt());
+		
+		JsonObject mouth_upper_lip_left_contour3 = landmark.get("mouth_upper_lip_left_contour3").getAsJsonObject();
+		points[5].x(mouth_upper_lip_left_contour3.get("x").getAsInt());
+		points[5].y(mouth_upper_lip_left_contour3.get("y").getAsInt());
+		
+		JsonObject left_eyebrow_lower_left_quarter = landmark.get("left_eyebrow_lower_left_quarter").getAsJsonObject();
+		points[6].x(left_eyebrow_lower_left_quarter.get("x").getAsInt());
+		points[6].y(left_eyebrow_lower_left_quarter.get("y").getAsInt());
+		
+		JsonObject right_eyebrow_lower_left_quarter = landmark.get("right_eyebrow_lower_left_quarter").getAsJsonObject();
+		points[7].x(right_eyebrow_lower_left_quarter.get("x").getAsInt());
+		points[7].y(right_eyebrow_lower_left_quarter.get("y").getAsInt());
+		
+		JsonObject right_eye_pupil = landmark.get("right_eye_pupil").getAsJsonObject();
+		points[8].x(right_eye_pupil.get("x").getAsInt());
+		points[8].y(right_eye_pupil.get("y").getAsInt());
+		
+		JsonObject mouth_lower_lip_right_contour1 = landmark.get("mouth_lower_lip_right_contour1").getAsJsonObject();
+		points[9].x(mouth_lower_lip_right_contour1.get("x").getAsInt());
+		points[9].y(mouth_lower_lip_right_contour1.get("y").getAsInt());
+		
+		
+		/**************20*******/
+		JsonObject mouth_lower_lip_left_contour2 = landmark.get("mouth_lower_lip_left_contour2").getAsJsonObject();
+		points[10].x(mouth_lower_lip_left_contour2.get("x").getAsInt());
+		points[10].y(mouth_lower_lip_left_contour2.get("y").getAsInt());
+		
+		JsonObject mouth_lower_lip_right_contour3 = landmark.get("mouth_lower_lip_right_contour3").getAsJsonObject();
+		points[11].x(mouth_lower_lip_right_contour3.get("x").getAsInt());
+		points[11].y(mouth_lower_lip_right_contour3.get("y").getAsInt());
+		
+		JsonObject mouth_lower_lip_right_contour2 = landmark.get("mouth_lower_lip_right_contour2").getAsJsonObject();
+		points[12].x(mouth_lower_lip_right_contour2.get("x").getAsInt());
+		points[12].y(mouth_lower_lip_right_contour2.get("y").getAsInt());
+		
+		JsonObject contour_chin = landmark.get("contour_chin").getAsJsonObject();
+		points[13].x(contour_chin.get("x").getAsInt());
+		points[13].y(contour_chin.get("y").getAsInt());
+		
+		JsonObject contour_left9 = landmark.get("contour_left9").getAsJsonObject();
+		points[14].x(contour_left9.get("x").getAsInt());
+		points[14].y(contour_left9.get("y").getAsInt());
+		
+		JsonObject left_eye_lower_right_quarter = landmark.get("left_eye_lower_right_quarter").getAsJsonObject();
+		points[15].x(left_eye_lower_right_quarter.get("x").getAsInt());
+		points[15].y(left_eye_lower_right_quarter.get("y").getAsInt());
+		
+		JsonObject mouth_lower_lip_top = landmark.get("mouth_lower_lip_top").getAsJsonObject();
+		points[16].x(mouth_lower_lip_top.get("x").getAsInt());
+		points[16].y(mouth_lower_lip_top.get("y").getAsInt());
+		
+		JsonObject right_eyebrow_upper_middle = landmark.get("right_eyebrow_upper_middle").getAsJsonObject();
+		points[17].x(right_eyebrow_upper_middle.get("x").getAsInt());
+		points[17].y(right_eyebrow_upper_middle.get("y").getAsInt());
+		
+		JsonObject right_eyebrow_left_corner = landmark.get("right_eyebrow_left_corner").getAsJsonObject();
+		points[18].x(right_eyebrow_left_corner.get("x").getAsInt());
+		points[18].y(right_eyebrow_left_corner.get("y").getAsInt());
+		
+		JsonObject right_eye_lower_right_quarter = landmark.get("right_eye_lower_right_quarter").getAsJsonObject();
+		points[19].x(right_eye_lower_right_quarter.get("x").getAsInt());
+		points[19].y(right_eye_lower_right_quarter.get("y").getAsInt());
+		/***********30*************/
+    JsonObject right_eye_bottom = landmark.get("right_eye_bottom").getAsJsonObject();
+    points[20].x(right_eye_bottom.get("x").getAsInt());
+	  points[20].y(right_eye_bottom.get("y").getAsInt());
+		
+		JsonObject contour_left7 = landmark.get("contour_left7").getAsJsonObject();
+		points[21].x(contour_left7.get("x").getAsInt());
+		points[21].y(contour_left7.get("y").getAsInt());
+		
+		JsonObject contour_left6 = landmark.get("contour_left6").getAsJsonObject();
+		points[22].x(contour_left6.get("x").getAsInt());
+		points[22].y(contour_left6.get("y").getAsInt());
+		
+		JsonObject contour_left5 = landmark.get("contour_left5").getAsJsonObject();
+		points[23].x(contour_left5.get("x").getAsInt());
+		points[23].y(contour_left5.get("y").getAsInt());
+		
+		JsonObject contour_left4 = landmark.get("contour_left4").getAsJsonObject();
+		points[24].x(contour_left4.get("x").getAsInt());
+		points[24].y(contour_left4.get("y").getAsInt());
+		
+		JsonObject contour_left3 = landmark.get("contour_left3").getAsJsonObject();
+		points[25].x(contour_left3.get("x").getAsInt());
+		points[25].y(contour_left3.get("y").getAsInt());
+		
+		JsonObject contour_left2 = landmark.get("contour_left2").getAsJsonObject();
+		points[26].x(contour_left2.get("x").getAsInt());
+		points[26].y(contour_left2.get("y").getAsInt());
+		
+		JsonObject contour_left1 = landmark.get("contour_left1").getAsJsonObject();
+		points[27].x(contour_left1.get("x").getAsInt());
+		points[27].y(contour_left1.get("y").getAsInt());
+		
+		JsonObject left_eye_lower_left_quarter = landmark.get("left_eye_lower_left_quarter").getAsJsonObject();
+		points[28].x(left_eye_lower_left_quarter.get("x").getAsInt());
+		points[28].y(left_eye_lower_left_quarter.get("y").getAsInt());
+		
+		JsonObject contour_right1 = landmark.get("contour_right1").getAsJsonObject();
+		points[29].x(contour_right1.get("x").getAsInt());
+		points[29].y(contour_right1.get("y").getAsInt());
+		/*****************40********/
+    JsonObject contour_right3 = landmark.get("contour_right3").getAsJsonObject();
+    points[30].x(contour_right3.get("x").getAsInt());
+		points[30].y(contour_right3.get("y").getAsInt());
+		
+		JsonObject contour_right2 = landmark.get("contour_right2").getAsJsonObject();
+		points[31].x(contour_right2.get("x").getAsInt());
+		points[31].y(contour_right2.get("y").getAsInt());
+		
+		JsonObject mouth_left_corner = landmark.get("mouth_left_corner").getAsJsonObject();
+		points[32].x(mouth_left_corner.get("x").getAsInt());
+		points[32].y(mouth_left_corner.get("y").getAsInt());
+		
+		JsonObject contour_right4 = landmark.get("contour_right4").getAsJsonObject();
+		points[33].x(contour_right4.get("x").getAsInt());
+		points[33].y(contour_right4.get("y").getAsInt());
+		
+		JsonObject contour_right7 = landmark.get("contour_right7").getAsJsonObject();
+		points[34].x(contour_right7.get("x").getAsInt());
+		points[34].y(contour_right7.get("y").getAsInt());
+		
+		JsonObject left_eyebrow_left_corner = landmark.get("left_eyebrow_left_corner").getAsJsonObject();
+		points[35].x(left_eyebrow_left_corner.get("x").getAsInt());
+		points[35].y(left_eyebrow_left_corner.get("y").getAsInt());
+		
+		JsonObject nose_right = landmark.get("nose_right").getAsJsonObject();
+		points[36].x(nose_right.get("x").getAsInt());
+		points[36].y(nose_right.get("y").getAsInt());
+		
+		JsonObject nose_tip = landmark.get("nose_tip").getAsJsonObject();
+		points[37].x(nose_tip.get("x").getAsInt());
+		points[37].y(nose_tip.get("y").getAsInt());
+		
+		JsonObject contour_right5 = landmark.get("contour_right5").getAsJsonObject();
+		points[38].x(contour_right5.get("x").getAsInt());
+		points[38].y(contour_right5.get("y").getAsInt());
+		
+		JsonObject nose_contour_lower_middle = landmark.get("nose_contour_lower_middle").getAsJsonObject();
+		points[39].x(nose_contour_lower_middle.get("x").getAsInt());
+		points[39].y(nose_contour_lower_middle.get("y").getAsInt());
+		/***************50************/
+    JsonObject right_eye_top = landmark.get("right_eye_top").getAsJsonObject();
+    points[40].x(right_eye_top.get("x").getAsInt());
+		points[40].y(right_eye_top.get("y").getAsInt());
+		
+		JsonObject mouth_lower_lip_left_contour3 = landmark.get("mouth_lower_lip_left_contour3").getAsJsonObject();
+		points[41].x(mouth_lower_lip_left_contour3.get("x").getAsInt());
+		points[41].y(mouth_lower_lip_left_contour3.get("y").getAsInt());
+		
+		JsonObject right_eye_right_corner = landmark.get("right_eye_right_corner").getAsJsonObject();
+		points[42].x(right_eye_right_corner.get("x").getAsInt());
+		points[42].y(right_eye_right_corner.get("y").getAsInt());
+		
+		JsonObject mouth_upper_lip_right_contour1 = landmark.get("mouth_upper_lip_right_contour1").getAsJsonObject();
+		points[43].x(mouth_upper_lip_right_contour1.get("x").getAsInt());
+		points[43].y(mouth_upper_lip_right_contour1.get("y").getAsInt());
+		
+		JsonObject mouth_upper_lip_right_contour2 = landmark.get("mouth_upper_lip_right_contour2").getAsJsonObject();
+		points[44].x(mouth_upper_lip_right_contour2.get("x").getAsInt());
+		points[44].y(mouth_upper_lip_right_contour2.get("y").getAsInt());
+		
+		JsonObject right_eyebrow_lower_right_quarter = landmark.get("right_eyebrow_lower_right_quarter").getAsJsonObject();
+		points[45].x(right_eyebrow_lower_right_quarter.get("x").getAsInt());
+		points[45].y(right_eyebrow_lower_right_quarter.get("y").getAsInt());
+		
+		JsonObject left_eye_left_corner = landmark.get("left_eye_left_corner").getAsJsonObject();
+		points[46].x(left_eye_left_corner.get("x").getAsInt());
+		points[46].y(left_eye_left_corner.get("y").getAsInt());
+		
+		JsonObject mouth_right_corner = landmark.get("mouth_right_corner").getAsJsonObject();
+		points[47].x(mouth_right_corner.get("x").getAsInt());
+		points[47].y(mouth_right_corner.get("y").getAsInt());
+		
+		JsonObject right_eye_lower_left_quarter = landmark.get("right_eye_lower_left_quarter").getAsJsonObject();
+		points[48].x(right_eye_lower_left_quarter.get("x").getAsInt());
+		points[48].y(right_eye_lower_left_quarter.get("y").getAsInt());
+		
+		JsonObject left_eyebrow_right_corner = landmark.get("left_eyebrow_right_corner").getAsJsonObject();
+		points[49].x(left_eyebrow_right_corner.get("x").getAsInt());
+		points[49].y(left_eyebrow_right_corner.get("y").getAsInt());
+		/*********60***********/
+    JsonObject left_eyebrow_lower_right_quarter = landmark.get("left_eyebrow_lower_right_quarter").getAsJsonObject();
+    points[50].x(left_eyebrow_lower_right_quarter.get("x").getAsInt());
+		points[50].y(left_eyebrow_lower_right_quarter.get("y").getAsInt());
+		
+		JsonObject right_eye_center = landmark.get("right_eye_center").getAsJsonObject();
+		points[51].x(right_eye_center.get("x").getAsInt());
+		points[51].y(right_eye_center.get("y").getAsInt());
+		
+		JsonObject left_eye_pupil = landmark.get("left_eye_pupil").getAsJsonObject();
+		points[52].x(left_eye_pupil.get("x").getAsInt());
+		points[52].y(left_eye_pupil.get("y").getAsInt());
+		
+		JsonObject nose_left = landmark.get("nose_left").getAsJsonObject();
+		points[53].x(nose_left.get("x").getAsInt());
+		points[53].y(nose_left.get("y").getAsInt());
+		
+		JsonObject mouth_lower_lip_left_contour1 = landmark.get("mouth_lower_lip_left_contour1").getAsJsonObject();
+		points[54].x(mouth_lower_lip_left_contour1.get("x").getAsInt());
+		points[54].y(mouth_lower_lip_left_contour1.get("y").getAsInt());
+		
+		JsonObject left_eye_upper_right_quarter = landmark.get("left_eye_upper_right_quarter").getAsJsonObject();
+		points[55].x(left_eye_upper_right_quarter.get("x").getAsInt());
+		points[55].y(left_eye_upper_right_quarter.get("y").getAsInt());
+		
+		JsonObject right_eyebrow_lower_middle = landmark.get("right_eyebrow_lower_middle").getAsJsonObject();
+		points[56].x(right_eyebrow_lower_middle.get("x").getAsInt());
+		points[56].y(right_eyebrow_lower_middle.get("y").getAsInt());
+		
+		JsonObject left_eye_center = landmark.get("left_eye_center").getAsJsonObject();
+		points[57].x(left_eye_center.get("x").getAsInt());
+		points[57].y(left_eye_center.get("y").getAsInt());
+		
+		JsonObject contour_left8 = landmark.get("contour_left8").getAsJsonObject();
+		points[58].x(contour_left8.get("x").getAsInt());
+		points[58].y(contour_left8.get("y").getAsInt());
+		
+		JsonObject contour_right9 = landmark.get("contour_right9").getAsJsonObject();
+		points[59].x(contour_right9.get("x").getAsInt());
+		points[59].y(contour_right9.get("y").getAsInt());
+		/*********70**********/
+    JsonObject right_eye_left_corner = landmark.get("right_eye_left_corner").getAsJsonObject();
+    points[60].x(right_eye_left_corner.get("x").getAsInt());
+		points[60].y(right_eye_left_corner.get("y").getAsInt());
+		
+		JsonObject left_eyebrow_upper_left_quarter = landmark.get("left_eyebrow_upper_left_quarter").getAsJsonObject();
+		points[61].x(left_eyebrow_upper_left_quarter.get("x").getAsInt());
+		points[61].y(left_eyebrow_upper_left_quarter.get("y").getAsInt());
+		
+		JsonObject left_eye_bottom = landmark.get("left_eye_bottom").getAsJsonObject();
+		points[62].x(left_eye_bottom.get("x").getAsInt());
+		points[62].y(left_eye_bottom.get("y").getAsInt());
+		
+		JsonObject left_eye_right_corner = landmark.get("left_eye_right_corner").getAsJsonObject();
+		points[63].x(left_eye_right_corner.get("x").getAsInt());
+		points[63].y(left_eye_right_corner.get("y").getAsInt());
+		
+		JsonObject right_eyebrow_upper_left_quarter = landmark.get("right_eyebrow_upper_left_quarter").getAsJsonObject();
+		points[64].x(right_eyebrow_upper_left_quarter.get("x").getAsInt());
+		points[64].y(right_eyebrow_upper_left_quarter.get("y").getAsInt());
+		
+		JsonObject contour_right8 = landmark.get("contour_right8").getAsJsonObject();
+		points[65].x(contour_right8.get("x").getAsInt());
+		points[65].y(contour_right8.get("y").getAsInt());
+		
+		JsonObject right_eyebrow_right_corner = landmark.get("right_eyebrow_right_corner").getAsJsonObject();
+		points[66].x(right_eyebrow_right_corner.get("x").getAsInt());
+		points[66].y(right_eyebrow_right_corner.get("y").getAsInt());
+		
+		JsonObject right_eye_upper_left_quarter = landmark.get("right_eye_upper_left_quarter").getAsJsonObject();
+		points[67].x(right_eye_upper_left_quarter.get("x").getAsInt());
+		points[67].y(right_eye_upper_left_quarter.get("y").getAsInt());
+		
+		JsonObject left_eyebrow_upper_middle = landmark.get("left_eyebrow_upper_middle").getAsJsonObject();
+		points[68].x(left_eyebrow_upper_middle.get("x").getAsInt());
+		points[68].y(left_eyebrow_upper_middle.get("y").getAsInt());
+		
+		JsonObject right_eyebrow_upper_right_quarter = landmark.get("right_eyebrow_upper_right_quarter").getAsJsonObject();
+		points[69].x(right_eyebrow_upper_right_quarter.get("x").getAsInt());
+		points[69].y(right_eyebrow_upper_right_quarter.get("y").getAsInt());
+		/*********80*******/
+    JsonObject nose_contour_left1 = landmark.get("nose_contour_left1").getAsJsonObject();
+    points[70].x(nose_contour_left1.get("x").getAsInt());
+		points[70].y(nose_contour_left1.get("y").getAsInt());
+		
+		JsonObject nose_contour_left2 = landmark.get("nose_contour_left2").getAsJsonObject();
+		points[71].x(nose_contour_left2.get("x").getAsInt());
+		points[71].y(nose_contour_left2.get("y").getAsInt());
+		
+		JsonObject nose_contour_left3 = landmark.get("nose_contour_left3").getAsJsonObject();
+		points[72].x(nose_contour_left3.get("x").getAsInt());
+		points[72].y(nose_contour_left3.get("y").getAsInt());
+		
+		JsonObject nose_contour_right1 = landmark.get("nose_contour_right1").getAsJsonObject();
+		points[73].x(nose_contour_right1.get("x").getAsInt());
+		points[73].y(nose_contour_right1.get("y").getAsInt());
+		
+		JsonObject nose_contour_right2 = landmark.get("nose_contour_right2").getAsJsonObject();
+		points[74].x(nose_contour_right2.get("x").getAsInt());
+		points[74].y(nose_contour_right2.get("y").getAsInt());
+		
+		JsonObject mouth_lower_lip_bottom = landmark.get("mouth_lower_lip_bottom").getAsJsonObject();
+		points[75].x(mouth_lower_lip_bottom.get("x").getAsInt());
+		points[75].y(mouth_lower_lip_bottom.get("y").getAsInt());
+		
+		JsonObject contour_right6 = landmark.get("contour_right6").getAsJsonObject();
+		points[76].x(contour_right6.get("x").getAsInt());
+		points[76].y(contour_right6.get("y").getAsInt());
+		
+		JsonObject nose_contour_right3 = landmark.get("nose_contour_right3").getAsJsonObject();
+		points[77].x(nose_contour_right3.get("x").getAsInt());
+		points[77].y(nose_contour_right3.get("y").getAsInt());
+		
+		JsonObject left_eye_top = landmark.get("left_eye_top").getAsJsonObject();
+		points[78].x(left_eye_top.get("x").getAsInt());
+		points[78].y(left_eye_top.get("y").getAsInt());
+		
+		JsonObject mouth_upper_lip_right_contour3 = landmark.get("mouth_upper_lip_right_contour3").getAsJsonObject();
+		points[79].x(mouth_upper_lip_right_contour3.get("x").getAsInt());
+		points[79].y(mouth_upper_lip_right_contour3.get("y").getAsInt());
+		/**********90****/
+    JsonObject left_eyebrow_upper_right_quarter = landmark.get("left_eyebrow_upper_right_quarter").getAsJsonObject();
+    points[80].x(left_eyebrow_upper_right_quarter.get("x").getAsInt());
+		points[80].y(left_eyebrow_upper_right_quarter.get("y").getAsInt());
+		
+		JsonObject right_eye_upper_right_quarter = landmark.get("right_eye_upper_right_quarter").getAsJsonObject();
+		points[81].x(right_eye_upper_right_quarter.get("x").getAsInt());
+		points[81].y(right_eye_upper_right_quarter.get("y").getAsInt());
+		
+		JsonObject mouth_upper_lip_bottom = landmark.get("mouth_upper_lip_bottom").getAsJsonObject();
+		points[82].x(mouth_upper_lip_bottom.get("x").getAsInt());
+		points[82].y(mouth_upper_lip_bottom.get("y").getAsInt());
+	}
+	/*
+	 * 人脸矩形解析
+	 */
+    public static void faceRectangleParsing(JsonObject face_rectangle)
+    {
+        int width = face_rectangle.get("width").getAsInt();
+        int top = face_rectangle.get("top").getAsInt();
+        int left = face_rectangle.get("left").getAsInt();
+        int height = face_rectangle.get("height").getAsInt();
+        face_rect = new Rect(left, top, width, height);//x, y ,width, height
+    }
+    /*
+     * face++猜测年龄等信息解析
+     */
+    public static void attributesParsing(JsonObject attributes)
+    {
+    	
+    }
+
+}
